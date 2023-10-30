@@ -256,19 +256,33 @@ func FindNearestRoad(mconn *mongo.Database, collectionname string, coordinates [
 
 // Fungsi untuk mencari jalur dari jalan awal ke jalan akhir
 // Fungsi untuk mencari jalur dari jalan awal ke jalan akhir
-func FindRoute(mconn *mongo.Database, collectionname, startRoadID, endRoadID string) []GeoJsonLineString {
+func FindRoute(mconn *mongo.Database, collectionname string, startGeometry, endGeometry GeometryLineString) []GeoJsonLineString {
 	var result []GeoJsonLineString
 
-	// Mencari jalan awal berdasarkan ID
-	startRoadFilter := bson.M{"_id": startRoadID}
+	// Mencari jalan berdasarkan geometri awal
+	startRoadFilter := bson.M{
+		"geometry.coordinates": bson.M{
+			"$near": bson.M{
+				"$geometry": startGeometry,
+			},
+		},
+	}
+
 	var startRoad GeoJsonLineString
 	err := mconn.Collection(collectionname).FindOne(context.Background(), startRoadFilter).Decode(&startRoad)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Mencari jalan akhir berdasarkan ID
-	endRoadFilter := bson.M{"_id": endRoadID}
+	// Mencari jalan berdasarkan geometri akhir
+	endRoadFilter := bson.M{
+		"geometry.coordinates": bson.M{
+			"$near": bson.M{
+				"$geometry": endGeometry,
+			},
+		},
+	}
+
 	var endRoad GeoJsonLineString
 	err = mconn.Collection(collectionname).FindOne(context.Background(), endRoadFilter).Decode(&endRoad)
 	if err != nil {
@@ -299,24 +313,25 @@ func GCFNearestRoadHandler(MONGOCONNSTRINGENV, dbname, collectionname string, r 
 }
 
 // Handler untuk endpoint jalur
+// Handler untuk endpoint jalur
 func GCFRouteHandler(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.Request) string {
 	// Validasi token di sini (gunakan func untuk validasi token)
 
 	// Mendapatkan inputan jalan awal dan jalan akhir
-	var startRoadID, endRoadID string
+	var startGeometry, endGeometry GeometryLineString
 	err := json.NewDecoder(r.Body).Decode(&struct {
-		StartRoadID string `json:"startRoadID"`
-		EndRoadID   string `json:"endRoadID"`
+		StartGeometry GeometryLineString `json:"startGeometry"`
+		EndGeometry   GeometryLineString `json:"endGeometry"`
 	}{
-		StartRoadID: startRoadID,
-		EndRoadID:   endRoadID,
+		StartGeometry: startGeometry,
+		EndGeometry:   endGeometry,
 	})
 	if err != nil {
 		return err.Error()
 	}
 
 	mconn := SetConnection(MONGOCONNSTRINGENV, dbname)
-	route := FindRoute(mconn, collectionname, startRoadID, endRoadID)
+	route := FindRoute(mconn, collectionname, startGeometry, endGeometry)
 
 	return GCFReturnStruct(route)
 }
