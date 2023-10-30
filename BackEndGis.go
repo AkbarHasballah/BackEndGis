@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
 	"os"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/aiteung/atdb"
 	"github.com/whatsauth/watoken"
@@ -254,42 +255,30 @@ func FindNearestRoad(mconn *mongo.Database, collectionname string, coordinates [
 }
 
 // Fungsi untuk mencari jalur dari jalan awal ke jalan akhir
+// Fungsi untuk mencari jalur dari jalan awal ke jalan akhir
 func FindRoute(mconn *mongo.Database, collectionname, startRoadID, endRoadID string) []GeoJsonLineString {
-	// Gunakan algoritma atau metode tertentu untuk mencari jalur dari jalan awal ke jalan akhir
-	// ...
+	var result []GeoJsonLineString
 
-	// Misalnya, di sini kita akan mengembalikan dua linestring sebagai contoh
-	linestring1 := GeoJsonLineString{
-		Type: "Feature",
-		Properties: Properties{
-			Name: "Route 1",
-		},
-		Geometry: GeometryLineString{
-			Coordinates: [][]float64{
-				{1.0, 2.0},
-				{3.0, 4.0},
-				{5.0, 6.0},
-			},
-			Type: "LineString",
-		},
+	// Mencari jalan awal berdasarkan ID
+	startRoadFilter := bson.M{"_id": startRoadID}
+	var startRoad GeoJsonLineString
+	err := mconn.Collection(collectionname).FindOne(context.Background(), startRoadFilter).Decode(&startRoad)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	linestring2 := GeoJsonLineString{
-		Type: "Feature",
-		Properties: Properties{
-			Name: "Route 2",
-		},
-		Geometry: GeometryLineString{
-			Coordinates: [][]float64{
-				{7.0, 8.0},
-				{9.0, 10.0},
-				{11.0, 12.0},
-			},
-			Type: "LineString",
-		},
+	// Mencari jalan akhir berdasarkan ID
+	endRoadFilter := bson.M{"_id": endRoadID}
+	var endRoad GeoJsonLineString
+	err = mconn.Collection(collectionname).FindOne(context.Background(), endRoadFilter).Decode(&endRoad)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	return []GeoJsonLineString{linestring1, linestring2}
+	// Mengembalikan hasil pencarian
+	result = append(result, startRoad, endRoad)
+
+	return result
 }
 
 // Handler untuk endpoint jalan terdekat
