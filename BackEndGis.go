@@ -363,7 +363,7 @@ func GCFPostHandlerSIGN(PASETOPRIVATEKEYENV, MONGOCONNSTRINGENV, dbname, collect
 					HttpOnly: true,        // Can only be accessed via HTTP
 					Path:     "/",         // Path where the cookie is valid (e.g., the entire site)
 					MaxAge:   3600,        // Cookie duration (in seconds), adjust as needed
-					// Secure: true, // If the site is served over HTTPS
+					Secure:   true,        // If the site is served over HTTPS
 				}
 
 				http.SetCookie(w, &cookie) // Set cookie in the response
