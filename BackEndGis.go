@@ -336,4 +336,60 @@ func GCFRouteHandler(MONGOCONNSTRINGENV, dbname, collectionname string, r *http.
 	return GCFReturnStruct(route)
 }
 
-// ...
+// FUNCTION SIGN TOKEN TAKISS
+
+func GCFPostHandlerSIGN(PASETOPRIVATEKEYENV, MONGOCONNSTRINGENV, dbname, collectionname string, r *http.Request, w http.ResponseWriter) {
+	var Response Credential
+	Response.Status = false
+	mconn := SetConnection(MONGOCONNSTRINGENV, dbname)
+	var datauser User
+	err := json.NewDecoder(r.Body).Decode(&datauser)
+	if err != nil {
+		Response.Message = "error parsing application/json: " + err.Error()
+	} else {
+		if IsPasswordValid(mconn, collectionname, datauser) {
+			Response.Status = true
+			tokenstring, err := watoken.Encode(datauser.Username, os.Getenv(PASETOPRIVATEKEYENV))
+			if err != nil {
+				Response.Message = "Gagal Encode Token : " + err.Error()
+			} else {
+				Response.Message = "Selamat Datang"
+				Response.Token = tokenstring
+
+				// Set the token as a cookie
+				cookie := http.Cookie{
+					Name:     "token",     // Cookie name
+					Value:    tokenstring, // Token as cookie value
+					HttpOnly: true,        // Can only be accessed via HTTP
+					Path:     "/",         // Path where the cookie is valid (e.g., the entire site)
+					MaxAge:   3600,        // Cookie duration (in seconds), adjust as needed
+					// Secure: true, // If the site is served over HTTPS
+				}
+
+				http.SetCookie(w, &cookie) // Set cookie in the response
+
+				// Prepare JSON response
+				response := map[string]interface{}{
+					"message":  "Login berhasil",
+					"token":    tokenstring,
+					"username": datauser.Username,
+					// It's not recommended to include the password in the response
+				}
+
+				// Send JSON response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(response)
+				return
+			}
+		} else {
+			Response.Message = "Password Salah"
+		}
+	}
+
+	// If the function reaches here, it means there was an error or invalid password
+	// Prepare JSON response for error case
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	json.NewEncoder(w).Encode(Response)
+}
