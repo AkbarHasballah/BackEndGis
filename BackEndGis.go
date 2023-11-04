@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/aiteung/atdb"
 	"github.com/whatsauth/watoken"
@@ -392,4 +393,84 @@ func GCFPostHandlerSIGN(PASETOPRIVATEKEYENV, MONGOCONNSTRINGENV, dbname, collect
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
 	json.NewEncoder(w).Encode(Response)
+}
+func CreateWisata(MONGOCONNSTRING, dbname, collectionname string, tempat TempatWisata) error {
+	clientOptions := options.Client().ApplyURI(MONGOCONNSTRING)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database(dbname).Collection(collectionname)
+
+	_, err = collection.InsertOne(context.TODO(), tempat)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func ReadWisata(MONGOCONNSTRING, dbname, collectionname string) ([]TempatWisata, error) {
+	clientOptions := options.Client().ApplyURI(MONGOCONNSTRING)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database(dbname).Collection(collectionname)
+
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	var tempatList []TempatWisata
+
+	for cursor.Next(context.TODO()) {
+		var tempat TempatWisata
+		err := cursor.Decode(&tempat)
+		if err != nil {
+			return nil, err
+		}
+		tempatList = append(tempatList, tempat)
+	}
+
+	return tempatList, nil
+}
+func UpdateWisata(MONGOCONNSTRING, dbname, collectionname string, filter bson.D, update bson.D) error {
+	clientOptions := options.Client().ApplyURI(MONGOCONNSTRING)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database(dbname).Collection(collectionname)
+
+	_, err = collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func DeleteWisata(MONGOCONNSTRING, dbname, collectionname string, filter bson.D) error {
+	clientOptions := options.Client().ApplyURI(MONGOCONNSTRING)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		return err
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database(dbname).Collection(collectionname)
+
+	_, err = collection.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

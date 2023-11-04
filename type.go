@@ -71,3 +71,17 @@ type Response struct {
 	Message string      `json:"message" bson:"message"`
 	Data    interface{} `json:"data" bson:"data"`
 }
+type TempatWisata struct {
+	Nama      string  `json:"nama"`
+	Jenis     string  `json:"jenis"`
+	Deskripsi string  `json:"deskripsi"`
+	Lokasi    Lokasi  `json:"lokasi"`
+	Alamat    string  `json:"alamat"`
+	Gambar    string  `json:"gambar"`
+	Rating    float64 `json:"rating"`
+}
+
+type Lokasi struct {
+	Type        string    `json:"type"`
+	Coordinates []float64 `json:"coordinates"`
+}
