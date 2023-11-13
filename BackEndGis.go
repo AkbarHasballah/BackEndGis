@@ -15,6 +15,37 @@ import (
 	"github.com/whatsauth/watoken"
 	"go.mongodb.org/mongo-driver/bson"
 )
+func GCFPostkordinatCoy(Mongostring, Publickey, dbname, colname string, r *http.Request) string {
+	req := new(Credents)
+	conn := GetConnectionMongo(Mongostring, dbname)
+	resp := new(LonLatProperties)
+	err := json.NewDecoder(r.Body).Decode(&resp)
+	tokenlogin := r.Header.Get("Login")
+	if tokenlogin == "" {
+		req.Status = strconv.Itoa(http.StatusNotFound)
+		req.Message = "Header Login Not Exist"
+	} else {
+		existing := IsExist(tokenlogin, os.Getenv(Publickey))
+		if !existing {
+			req.Status = strconv.Itoa(http.StatusNotFound)
+			req.Message = "Kamu kayaknya belum punya akun"
+		} else {
+			if err != nil {
+				req.Status = strconv.Itoa(http.StatusNotFound)
+				req.Message = "error parsing application/json: " + err.Error()
+			} else {
+				req.Status = strconv.Itoa(http.StatusOK)
+				Ins := InsertDataLonlat(conn, colname,
+					resp.Coordinates,
+					resp.Name,
+					resp.Volume,
+					resp.Type)
+				req.Message = fmt.Sprintf("%v:%v", "Berhasil Input data", Ins)
+			}
+		}
+	}
+	return ReturnStringStruct(req)
+}
 
 func GCFHandler(MONGOCONNSTRINGENV, dbname, collectionname string) string {
 	mconn := SetConnection(MONGOCONNSTRINGENV, dbname)
